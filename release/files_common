@@ -363,6 +363,7 @@ selfdrive/modeld/constants.py
 selfdrive/modeld/navmodeld
 selfdrive/modeld/dmonitoringmodeld
 
+selfdrive/modeld/models/__init__.py
 selfdrive/modeld/models/*.pxd
 selfdrive/modeld/models/*.pyx
 
@@ -394,6 +395,7 @@ selfdrive/modeld/thneed/thneed_common.cc
 selfdrive/modeld/thneed/thneed_qcom2.cc
 selfdrive/modeld/thneed/serialize.cc
 
+selfdrive/modeld/runners/__init__.py
 selfdrive/modeld/runners/*.pxd
 selfdrive/modeld/runners/*.pyx
 
