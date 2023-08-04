@@ -354,6 +354,7 @@ selfdrive/manager/process.py
 selfdrive/manager/test/__init__.py
 selfdrive/manager/test/test_manager.py
 
+selfdrive/modeld/.gitignore
 selfdrive/modeld/__init__.py
 selfdrive/modeld/SConscript
 selfdrive/modeld/modeld.py
