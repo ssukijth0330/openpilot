@@ -64,11 +64,6 @@ lenvCython.Program('models/driving_pyx.so', 'models/driving_pyx.pyx', LIBS=[driv
 lenv['FRAMEWORKS'] = frameworks
 common_model = lenv.Object(common_src)
 
-lenv.Program('_dmonitoringmodeld', [
-    "dmonitoringmodeld.cc",
-    "models/dmonitoring.cc",
-  ]+common_model, LIBS=libs + snpe_lib)
-
 lenv.Program('_navmodeld', [
     "navmodeld.cc",
     "models/nav.cc",
