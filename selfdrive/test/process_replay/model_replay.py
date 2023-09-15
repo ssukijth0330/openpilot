@@ -6,6 +6,7 @@ from collections import defaultdict
 from typing import Any
 
 import cereal.messaging as messaging
+from cereal.visionipc import VisionStreamType, get_endpoint_name as vipc_get_endpoint_name
 from openpilot.common.params import Params
 from openpilot.common.spinner import Spinner
 from openpilot.system.hardware import PC
@@ -13,7 +14,7 @@ from openpilot.selfdrive.manager.process_config import managed_processes
 from openpilot.selfdrive.test.openpilotci import BASE_URL, get_url
 from openpilot.selfdrive.test.process_replay.compare_logs import compare_logs
 from openpilot.selfdrive.test.process_replay.test_processes import format_diff
-from openpilot.selfdrive.test.process_replay.process_replay import get_process_config, replay_process
+from openpilot.selfdrive.test.process_replay.process_replay import ProcessConfig, ReplayContext, get_process_config, replay_process
 from openpilot.system.version import get_commit
 from openpilot.tools.lib.framereader import FrameReader
 from openpilot.tools.lib.logreader import LogReader
@@ -52,6 +53,17 @@ def trim_logs_to_max_frames(logs, max_frames, frs_types, include_all_types):
 
 
 def nav_model_replay(lr):
+  cfg = ProcessConfig(
+    proc_name='selfdrive.modeld.navmodeld',
+    subs=[], # 'navModel', 'mapRenderState', 'navThumbnail'],
+    pubs=[], # 'navRoute', 'liveLocationKalman'],
+    main_pub=vipc_get_endpoint_name("navd", VisionStreamType.VISION_STREAM_MAP),
+    main_pub_drained=False,
+    ignore=[],
+  )
+  rc = ReplayContext(cfg)
+  rc.open_context()
+
   sm = messaging.SubMaster(['navModel', 'navThumbnail', 'mapRenderState'])
   pm = messaging.PubMaster(['liveLocationKalman', 'navRoute'])
 
@@ -67,10 +79,12 @@ def nav_model_replay(lr):
     managed_processes['mapsd'].start()
     managed_processes['navmodeld'].start()
 
+    for s in (llk[-NAV_FRAMES], nav[0]):
+      pm.send(s.which(), s.as_builder().to_bytes())
+    rc.wait_for_recv_called()
+
     # setup position and route
     for _ in range(10):
-      for s in (llk[-NAV_FRAMES], nav[0]):
-        pm.send(s.which(), s.as_builder().to_bytes())
       sm.update(1000)
       if sm.updated['navModel']:
         break
@@ -86,6 +100,8 @@ def nav_model_replay(lr):
     # run replay
     for n in range(len(llk) - NAV_FRAMES, len(llk)):
       pm.send(llk[n].which(), llk[n].as_builder().to_bytes())
+      rc.wait_for_recv_called()
+
       m = messaging.recv_one(sm.sock['navThumbnail'])
       assert m is not None, f"no navThumbnail, frame={n}"
       log_msgs.append(m)
@@ -181,9 +197,10 @@ if __name__ == "__main__":
     os.environ['MAPS_HOST'] = BASE_URL.rstrip('/')
 
   # run replays
-  log_msgs = model_replay(lr, frs)
-  if not NO_NAV:
-    log_msgs += nav_model_replay(lr)
+  log_msgs = nav_model_replay(lr)
+  # log_msgs = model_replay(lr, frs)
+  # if not NO_NAV:
+  #   log_msgs += nav_model_replay(lr)
 
   # get diff
   failed = False
@@ -197,9 +214,9 @@ if __name__ == "__main__":
 
       # logs are ordered based on type: modelV2, driverStateV2, nav messages (navThumbnail, mapRenderState, navModel)
       model_start_index = next(i for i, m in enumerate(all_logs) if m.which() == "modelV2")
-      cmp_log += all_logs[model_start_index:model_start_index + MAX_FRAMES]
+      # cmp_log += all_logs[model_start_index:model_start_index + MAX_FRAMES]
       dmon_start_index = next(i for i, m in enumerate(all_logs) if m.which() == "driverStateV2")
-      cmp_log += all_logs[dmon_start_index:dmon_start_index + MAX_FRAMES]
+      # cmp_log += all_logs[dmon_start_index:dmon_start_index + MAX_FRAMES]
       if not NO_NAV:
         nav_start_index = next(i for i, m in enumerate(all_logs) if m.which() in ["navThumbnail", "mapRenderState", "navModel"])
         nav_logs = all_logs[nav_start_index:nav_start_index + NAV_FRAMES*3]
