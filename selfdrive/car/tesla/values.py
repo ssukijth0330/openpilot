@@ -16,11 +16,13 @@ Button = namedtuple('Button', ['event_type', 'can_addr', 'can_msg', 'values'])
 class CAR(StrEnum):
   AP1_MODELS = 'TESLA AP1 MODEL S'
   AP2_MODELS = 'TESLA AP2 MODEL S'
+  AP3_MODELS = 'TESLA AP3 MODEL S'
 
 
 CAR_INFO: Dict[str, Union[CarInfo, List[CarInfo]]] = {
   CAR.AP1_MODELS: CarInfo("Tesla AP1 Model S", "All"),
   CAR.AP2_MODELS: CarInfo("Tesla AP2 Model S", "All"),
+  CAR.AP3_MODELS: CarInfo("Tesla AP3 Model S", "All"),
 }
 
 FINGERPRINTS = {
@@ -32,8 +34,9 @@ FINGERPRINTS = {
 }
 
 DBC = {
-  CAR.AP2_MODELS: dbc_dict('tesla_powertrain', 'tesla_radar', chassis_dbc='tesla_can'),
   CAR.AP1_MODELS: dbc_dict('tesla_powertrain', 'tesla_radar', chassis_dbc='tesla_can'),
+  CAR.AP2_MODELS: dbc_dict('tesla_powertrain', 'tesla_radar_bosch_generated', chassis_dbc='tesla_can'),
+  CAR.AP3_MODELS: dbc_dict('tesla_powertrain', 'tesla_radar_continental_generated', chassis_dbc='tesla_can'),
 }
 
 FW_QUERY_CONFIG = FwQueryConfig(
@@ -41,6 +44,13 @@ FW_QUERY_CONFIG = FwQueryConfig(
     Request(
       [StdQueries.TESTER_PRESENT_REQUEST, StdQueries.UDS_VERSION_REQUEST],
       [StdQueries.TESTER_PRESENT_RESPONSE, StdQueries.UDS_VERSION_RESPONSE],
+      whitelist_ecus=[Ecu.eps],
+      rx_offset=0x08,
+      bus=0,
+    ),
+    Request(
+      [StdQueries.TESTER_PRESENT_REQUEST, StdQueries.SUPPLIER_SOFTWARE_VERSION_REQUEST],
+      [StdQueries.TESTER_PRESENT_RESPONSE, StdQueries.SUPPLIER_SOFTWARE_VERSION_RESPONSE],
       whitelist_ecus=[Ecu.eps],
       rx_offset=0x08,
       bus=0,
@@ -68,6 +78,17 @@ FW_VERSIONS = {
     ],
     (Ecu.eps, 0x730, None): [
       b'\x10#\x01',
+    ],
+  },
+  CAR.AP3_MODELS: {
+    (Ecu.electricBrakeBooster, 0x64d, None): [
+      b'1037123-00-A',
+    ],
+    (Ecu.fwdRadar, 0x671, None): [
+      b'\x01\x00\x99\x02\x01\x00\x10\x00\x00AP8.3.03\x00\x10',
+    ],
+    (Ecu.eps, 0x730, None): [
+      b'SX_0.0.0 (99),SR013.7',
     ],
   },
 }
