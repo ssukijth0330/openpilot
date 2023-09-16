@@ -364,7 +364,7 @@ std::optional<bool> send_panda_states(PubMaster *pm, const std::vector<Panda *> 
     ps.setGasInterceptorDetected(health.gas_interceptor_detected_pkt);
     ps.setTxBufferOverflow(health.tx_buffer_overflow_pkt);
     ps.setRxBufferOverflow(health.rx_buffer_overflow_pkt);
-    ps.setGmlanSendErrs(health.gmlan_send_errs_pkt);
+//    ps.setGmlanSendErrs(health.gmlan_send_errs_pkt);
     ps.setPandaType(panda->hw_type);
     ps.setSafetyModel(cereal::CarParams::SafetyModel(health.safety_mode_pkt));
     ps.setSafetyParam(health.safety_param_pkt);
@@ -380,6 +380,9 @@ std::optional<bool> send_panda_states(PubMaster *pm, const std::vector<Panda *> 
     ps.setSpiChecksumErrorCount(health.spi_checksum_error_count);
     ps.setSbu1Voltage(health.sbu1_voltage_mV / 1000.0f);
     ps.setSbu2Voltage(health.sbu2_voltage_mV / 1000.0f);
+
+    ps.setHighestIrqNum(health.highest_irq_num);
+    ps.setHighestIrqRate(health.highest_irq_rate);
 
     std::array<cereal::PandaState::PandaCanState::Builder, PANDA_CAN_CNT> cs = {ps.initCanState0(), ps.initCanState1(), ps.initCanState2()};
 
