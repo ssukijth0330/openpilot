@@ -87,7 +87,7 @@ def yolo_processor(addr, sock_name, yolo_runner, nvidia, debug=False):
         uv = img_yuv[uv_offset:].reshape(2, -1).ravel('F')
         img_yuv = np.hstack((y, uv))
 
-      img_rgb = cv2.cvtColor(img_yuv.reshape(H*3//2, W), cv2.COLOR_YUV2RGB_I420)
+      img_rgb = cv2.cvtColor(img_yuv.reshape(H*3//2, W), cv2.COLOR_YUV2RGB_NV12)
       outs = yolo_runner.run(img_rgb)
 
       dat = messaging.new_message()
