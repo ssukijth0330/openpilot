@@ -66,8 +66,8 @@ class YoloRunner:
     self.sess = create_ort_session(onnx_path)
     self.class_names = [ast.literal_eval(self.sess.get_modelmeta().custom_metadata_map['names'])[i] for i in range(N_CLASSES)]
 
-  # TODO: add crop to center
   def preprocess_image(self, img):
+    img = img[104:104+800,564:564+800]
     img = cv2.resize(img, (640, 640))
     img = np.expand_dims(img, 0).astype(np.float32)
     img = img.transpose(0, 3, 1, 2)
