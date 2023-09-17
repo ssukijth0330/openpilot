@@ -107,7 +107,7 @@ if __name__ == "__main__":
   parser.add_argument("addr", help="Address of comma three")
   args = parser.parse_args()
   socket_name = 'driverEncodeData'
-  # TODO: download from from https://github.com/ultralytics/yolov5/releases/download/v7.0/yolov5n.onnx
-  # place it in openpilot/tools/bodyteleop/models
+  if not os.path.isfile('models/yolov5n.onnx'):
+    os.system('wget https://github.com/ultralytics/yolov5/releases/download/v7.0/yolov5n.onnx -P models')
   yolo_runner = YoloRunner('models/yolov5n.onnx')
   yolo_processor(args.addr, socket_name, yolo_runner, nvidia=False, debug=False)
