@@ -75,8 +75,8 @@ class YoloRunner:
     return img
 
   def run(self, img):
-    img = self.preprocess_image(img)
-    res = self.sess.run(None, {'image': img})
+    img = self.preprocess_image(img).astype(np.float16)
+    res = self.sess.run(None, {'images': img})
     res = nms(res[0])
     return [{
         "pred_class": self.class_names[int(opt[-1])],
