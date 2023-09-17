@@ -6,6 +6,7 @@ import sys
 import argparse
 import numpy as np
 import time
+import json
 
 import cereal.messaging as messaging
 from openpilot.tools.bodyteleop.yolo_helpers import YoloRunner
@@ -36,6 +37,7 @@ def yolo_processor(addr, sock_name, yolo_runner, nvidia, debug=False):
   os.environ["ZMQ"] = "1"
   messaging.context = messaging.Context()
   sock = messaging.sub_sock(sock_name, None, addr=addr, conflate=False)
+  psock = messaging.pub_sock('bodyReserved0')
   last_idx = -1
   seen_iframe = False
 
@@ -87,8 +89,10 @@ def yolo_processor(addr, sock_name, yolo_runner, nvidia, debug=False):
 
       img_rgb = cv2.cvtColor(img_yuv.reshape(H*3//2, W), cv2.COLOR_YUV2RGB_I420)
       outs = yolo_runner.run(img_rgb)
-      # outs are YOLO outputs
-      # TODO: send over msgq to device
+
+      dat = messaging.new_message()
+      dat.bodyReserved0 = json.dumps(outs)
+      psock.send(dat.to_bytes())
 
       pc_latency = (time.monotonic()-time_q[0])*1000
       time_q = time_q[1:]
@@ -105,5 +109,5 @@ if __name__ == "__main__":
   socket_name = 'driverEncodeData'
   # TODO: download from from https://github.com/ultralytics/yolov5/releases/download/v7.0/yolov5n.onnx
   # place it in openpilot/tools/bodyteleop/models
-  yolo_runner = YoloRunner(....)
+  yolo_runner = YoloRunner('models/yolov5n.onnx')
   yolo_processor(args.addr, socket_name, yolo_runner, nvidia=False, debug=False)
