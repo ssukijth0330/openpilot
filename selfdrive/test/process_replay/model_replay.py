@@ -9,6 +9,7 @@ import cereal.messaging as messaging
 from cereal.visionipc import VisionStreamType, get_endpoint_name as vipc_get_endpoint_name
 from openpilot.common.params import Params
 from openpilot.common.spinner import Spinner
+from openpilot.common.prefix import OpenpilotPrefix
 from openpilot.system.hardware import PC
 from openpilot.selfdrive.manager.process_config import managed_processes
 from openpilot.selfdrive.test.openpilotci import BASE_URL, get_url
@@ -53,71 +54,85 @@ def trim_logs_to_max_frames(logs, max_frames, frs_types, include_all_types):
 
 
 def nav_model_replay(lr):
-  cfg = ProcessConfig(
-    proc_name='selfdrive.modeld.navmodeld',
-    subs=[], # 'navModel', 'mapRenderState', 'navThumbnail'],
-    pubs=[], # 'navRoute', 'liveLocationKalman'],
-    main_pub=vipc_get_endpoint_name("navd", VisionStreamType.VISION_STREAM_MAP),
-    main_pub_drained=False,
-    ignore=[],
+  mapsd_cfg = ProcessConfig(
+    proc_name="maspd",
+    subs=[],
+    pubs=["liveLocationKalman", "navRoute"]
   )
-  rc = ReplayContext(cfg)
-  rc.open_context()
+  nmd_cfg = ProcessConfig(
+    proc_name='navmodeld',
+    subs=[],
+    pubs=[vipc_get_endpoint_name("navd", VisionStreamType.VISION_STREAM_MAP)]
+  )
 
-  sm = messaging.SubMaster(['navModel', 'navThumbnail', 'mapRenderState'])
-  pm = messaging.PubMaster(['liveLocationKalman', 'navRoute'])
+  with OpenpilotPrefix(), ReplayContext(mapsd_cfg) as mapsd_rc, ReplayContext(nmd_cfg) as nmd_rc:
+    sm = messaging.SubMaster(['navModel', 'navThumbnail', 'mapRenderState'])
+    pm = messaging.PubMaster(['liveLocationKalman', 'navRoute'])
 
-  nav = [m for m in lr if m.which() == 'navRoute']
-  llk = [m for m in lr if m.which() == 'liveLocationKalman']
-  assert len(nav) > 0 and len(llk) >= NAV_FRAMES and nav[0].logMonoTime < llk[-NAV_FRAMES].logMonoTime
+    nav = [m for m in lr if m.which() == 'navRoute']
+    llk = [m for m in lr if m.which() == 'liveLocationKalman']
+    assert len(nav) > 0 and len(llk) >= NAV_FRAMES and nav[0].logMonoTime < llk[-NAV_FRAMES].logMonoTime
 
-  log_msgs = []
-  try:
-    assert "MAPBOX_TOKEN" in os.environ
-    os.environ['MAP_RENDER_TEST_MODE'] = '1'
-    Params().put_bool('DmModelInitialized', True)
-    managed_processes['mapsd'].start()
-    managed_processes['navmodeld'].start()
+    log_msgs = []
+    try:
+      assert "MAPBOX_TOKEN" in os.environ
+      os.environ['MAP_RENDER_TEST_MODE'] = '1'
+      Params().put_bool('DmModelInitialized', True)
+      managed_processes['mapsd'].start()
+      managed_processes['navmodeld'].start()
 
-    for s in (llk[-NAV_FRAMES], nav[0]):
-      pm.send(s.which(), s.as_builder().to_bytes())
-    rc.wait_for_recv_called()
+      # wait for processes to initialize
+      mapsd_rc.wait_for_recv_called()
+      nmd_rc.wait_for_recv_called()
 
-    # setup position and route
-    for _ in range(10):
-      sm.update(1000)
-      if sm.updated['navModel']:
-        break
-      time.sleep(1)
+      # wait for the first frame
+      for s in (llk[-NAV_FRAMES], nav[0]):
+        pm.send(s.which(), s.as_builder().to_bytes())
+      mapsd_rc.unlock_sockets()
+      mapsd_rc.wait_for_next_recv(False)
 
-    if not sm.updated['navModel']:
-      raise Exception("no navmodeld outputs, failed to initialize")
+      # let go navmodeld for the first iter
+      nmd_rc.unlock_sockets()
+      nmd_rc.wait_for_next_recv(False)
 
-    # drain
-    time.sleep(2)
-    sm.update(0)
+      if not sm.updated['navModel']:
+        raise Exception("no navmodeld outputs, failed to initialize")
 
-    # run replay
-    for n in range(len(llk) - NAV_FRAMES, len(llk)):
-      pm.send(llk[n].which(), llk[n].as_builder().to_bytes())
-      rc.wait_for_recv_called()
+      # disable locks on sockets for the next run
+      for handle in mapsd_rc.events.values():
+        handle.enabled = False
+      for handle in nmd_rc.events.values():
+        handle.enabled = False
 
-      m = messaging.recv_one(sm.sock['navThumbnail'])
-      assert m is not None, f"no navThumbnail, frame={n}"
-      log_msgs.append(m)
+      # let locks go, for the last time
+      mapsd_rc.unlock_sockets()
+      nmd_rc.unlock_sockets()
 
-      m = messaging.recv_one(sm.sock['mapRenderState'])
-      assert m is not None, f"no mapRenderState, frame={n}"
-      log_msgs.append(m)
+      # drain
+      time.sleep(2)
+      sm.update(0)
 
-      m = messaging.recv_one(sm.sock['navModel'])
-      assert m is not None, f"no navModel response, frame={n}"
-      log_msgs.append(m)
-  finally:
-    managed_processes['mapsd'].stop()
-    managed_processes['navmodeld'].stop()
+      # run replay
+      for n in range(len(llk) - NAV_FRAMES, len(llk)):
+        pm.send(llk[n].which(), llk[n].as_builder().to_bytes())
+        rc.wait_for_recv_called()
 
-  return log_msgs
+        m = messaging.recv_one(sm.sock['navThumbnail'])
+        assert m is not None, f"no navThumbnail, frame={n}"
+        log_msgs.append(m)
+
+        m = messaging.recv_one(sm.sock['mapRenderState'])
+        assert m is not None, f"no mapRenderState, frame={n}"
+        log_msgs.append(m)
+
+        m = messaging.recv_one(sm.sock['navModel'])
+        assert m is not None, f"no navModel response, frame={n}"
+        log_msgs.append(m)
+    finally:
+      managed_processes['mapsd'].stop()
+      managed_processes['navmodeld'].stop()
+
+    return log_msgs
 
 
 def model_replay(lr, frs):
