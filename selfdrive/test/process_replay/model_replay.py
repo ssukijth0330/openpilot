@@ -194,8 +194,8 @@ if __name__ == "__main__":
       # logs are ordered based on type: modelV2, driverStateV2, nav messages (navThumbnail, mapRenderState, navModel)
       model_start_index = next(i for i, m in enumerate(all_logs) if m.which() in ("modelV2", "cameraOdometry"))
       cmp_log += all_logs[model_start_index:model_start_index + MAX_FRAMES*2]
-      dmon_start_index = next(i for i, m in enumerate(all_logs) if m.which() == "driverStateV2")
-      cmp_log += all_logs[dmon_start_index:dmon_start_index + MAX_FRAMES]
+      # dmon_start_index = next(i for i, m in enumerate(all_logs) if m.which() == "driverStateV2")
+      # cmp_log += all_logs[dmon_start_index:dmon_start_index + MAX_FRAMES]
       if not NO_NAV:
         nav_start_index = next(i for i, m in enumerate(all_logs) if m.which() in ["navThumbnail", "mapRenderState", "navModel"])
         nav_logs = all_logs[nav_start_index:nav_start_index + NAV_FRAMES*3]
