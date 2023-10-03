@@ -356,12 +356,12 @@ std::optional<bool> send_panda_states(PubMaster *pm, const std::vector<Panda *> 
     ps.setVoltage(health.voltage_pkt);
     ps.setCurrent(health.current_pkt);
     ps.setUptime(health.uptime_pkt);
-    ps.setSafetyTxBlocked(health.safety_tx_blocked_pkt);
+//    ps.setSafetyTxBlocked(health.safety_tx_blocked_pkt);
     ps.setSafetyRxInvalid(health.safety_rx_invalid_pkt);
     ps.setIgnitionLine(health.ignition_line_pkt);
     ps.setIgnitionCan(health.ignition_can_pkt);
     ps.setControlsAllowed(health.controls_allowed_pkt);
-    ps.setGasInterceptorDetected(health.gas_interceptor_detected_pkt);
+//    ps.setGasInterceptorDetected(health.gas_interceptor_detected_pkt);
     ps.setTxBufferOverflow(health.tx_buffer_overflow_pkt);
     ps.setRxBufferOverflow(health.rx_buffer_overflow_pkt);
 //    ps.setGmlanSendErrs(health.gmlan_send_errs_pkt);
@@ -381,8 +381,13 @@ std::optional<bool> send_panda_states(PubMaster *pm, const std::vector<Panda *> 
     ps.setSbu1Voltage(health.sbu1_voltage_mV / 1000.0f);
     ps.setSbu2Voltage(health.sbu2_voltage_mV / 1000.0f);
 
+    // new
     ps.setHighestIrqNum(health.highest_irq_num);
     ps.setHighestIrqRate(health.highest_irq_rate);
+
+    // newer
+    ps.setLongestIrqNum(health.longest_irq_num);
+    ps.setLongestIrqTime(health.longest_irq_time);
 
     std::array<cereal::PandaState::PandaCanState::Builder, PANDA_CAN_CNT> cs = {ps.initCanState0(), ps.initCanState1(), ps.initCanState2()};
 
