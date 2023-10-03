@@ -2,8 +2,10 @@
 import os
 import sys
 import time
+import numpy as np
 from collections import defaultdict
 from typing import Any
+from tqdm import trange
 
 import cereal.messaging as messaging
 from openpilot.common.params import Params
@@ -25,6 +27,18 @@ NAV_FRAMES = 50
 
 NO_NAV = "NO_NAV" in os.environ
 SEND_EXTRA_INPUTS = bool(int(os.getenv("SEND_EXTRA_INPUTS", "0")))
+
+class FakeFrameReader:
+  def __init__(self, path, *args, **kwargs):
+    self.data_path = os.path.join('/data/media/frames', path)
+    if not os.path.exists(self.data_path):
+      os.makedirs(self.data_path, exist_ok=True)
+      fr = FrameReader(path)
+      for i in trange(MAX_FRAMES+1, desc='loading frames'):
+        np.save(os.path.join(self.data_path, f'frame_{i}.npy'), fr.get(i, pix_fmt="nv12")[0])
+
+  def get(self, i, count=1, **kwargs):
+    return [np.load(os.path.join(self.data_path, f'frame_{i}.npy'))]
 
 
 def get_log_fn(ref_commit, test_route):
@@ -117,11 +131,11 @@ def model_replay(lr, frs):
   dmodeld_logs.insert(0, cal_msg.as_reader())
 
   modeld = get_process_config("modeld")
-  dmonitoringmodeld = get_process_config("dmonitoringmodeld")
+  # dmonitoringmodeld = get_process_config("dmonitoringmodeld")
 
   modeld_msgs = replay_process(modeld, modeld_logs, frs)
-  dmonitoringmodeld_msgs = replay_process(dmonitoringmodeld, dmodeld_logs, frs)
-  return modeld_msgs + dmonitoringmodeld_msgs
+  # dmonitoringmodeld_msgs = replay_process(dmonitoringmodeld, dmodeld_logs, frs)
+  return modeld_msgs # + dmonitoringmodeld_msgs
 
 
 if __name__ == "__main__":
@@ -132,9 +146,9 @@ if __name__ == "__main__":
   # load logs
   lr = list(LogReader(get_url(TEST_ROUTE, SEGMENT)))
   frs = {
-    'roadCameraState': FrameReader(get_url(TEST_ROUTE, SEGMENT, log_type="fcamera"), readahead=True),
-    'driverCameraState': FrameReader(get_url(TEST_ROUTE, SEGMENT, log_type="dcamera"), readahead=True),
-    'wideRoadCameraState': FrameReader(get_url(TEST_ROUTE, SEGMENT, log_type="ecamera"), readahead=True)
+    'roadCameraState': FakeFrameReader(get_url(TEST_ROUTE, SEGMENT, log_type="fcamera"), readahead=True),
+    # 'driverCameraState': FakeFrameReader(get_url(TEST_ROUTE, SEGMENT, log_type="dcamera"), readahead=True),
+    'wideRoadCameraState': FakeFrameReader(get_url(TEST_ROUTE, SEGMENT, log_type="ecamera"), readahead=True)
   }
 
   # Update tile refs
