@@ -149,17 +149,17 @@ class TestHyundaiFingerprint(unittest.TestCase):
 
     # Some cameras and all radars do not have dates
     results = get_platform_codes([b"\xf1\x00AEhe SCC H-CUP      1.01 1.01 96400-G2000         "])
-    self.assertEqual(results, {(b"AEhe-G2", None)})
+    self.assertEqual(results, {(b"AEhe-G2000", None)})
 
     results = get_platform_codes([b"\xf1\x00CV1_ RDR -----      1.00 1.01 99110-CV000         "])
-    self.assertEqual(results, {(b"CV1-CV", None)})
+    self.assertEqual(results, {(b"CV1-CV000", None)})
 
     results = get_platform_codes([
       b"\xf1\x00DH LKAS 1.1 -150210",
       b"\xf1\x00AEhe SCC H-CUP      1.01 1.01 96400-G2000         ",
       b"\xf1\x00CV1_ RDR -----      1.00 1.01 99110-CV000         ",
     ])
-    self.assertEqual(results, {(b"DH", b"150210"), (b"AEhe-G2", None), (b"CV1-CV", None)})
+    self.assertEqual(results, {(b"DH", b"150210"), (b"AEhe-G2000", None), (b"CV1-CV000", None)})
 
     results = get_platform_codes([
       b"\xf1\x00LX2 MFC  AT USA LHD 1.00 1.07 99211-S8100 220222",
@@ -167,7 +167,7 @@ class TestHyundaiFingerprint(unittest.TestCase):
       b"\xf1\x00ON  MFC  AT USA LHD 1.00 1.01 99211-S9100 190405",
       b"\xf1\x00ON  MFC  AT USA LHD 1.00 1.03 99211-S9100 190720",
     ])
-    self.assertEqual(results, {(b"LX2-S8100", b"220222"), (b"LX2-S8", b"211103"),
+    self.assertEqual(results, {(b"LX2-S8100", b"220222"), (b"LX2-S8100", b"211103"),
                                (b"ON-S9100", b"190405"), (b"ON-S9100", b"190720")})
 
   def test_fuzzy_excluded_platforms(self):
