@@ -115,7 +115,6 @@ class TestHyundaiFingerprint(unittest.TestCase):
     # Asserts:
     # - every supported ECU FW version returns one platform code
     # - every supported ECU FW version has a part number
-    # - each platform has one part number prefix
     # - expected parsing of ECU FW dates
 
     for car_model, ecus in FW_VERSIONS.items():
@@ -168,8 +167,8 @@ class TestHyundaiFingerprint(unittest.TestCase):
       b"\xf1\x00ON  MFC  AT USA LHD 1.00 1.01 99211-S9100 190405",
       b"\xf1\x00ON  MFC  AT USA LHD 1.00 1.03 99211-S9100 190720",
     ])
-    self.assertEqual(results, {(b"LX2-S8", b"220222"), (b"LX2-S8", b"211103"),
-                               (b"ON-S9", b"190405"), (b"ON-S9", b"190720")})
+    self.assertEqual(results, {(b"LX2-S8100", b"220222"), (b"LX2-S8", b"211103"),
+                               (b"ON-S9100", b"190405"), (b"ON-S9100", b"190720")})
 
   def test_fuzzy_excluded_platforms(self):
     # Asserts a list of platforms that will not fuzzy fingerprint with platform codes due to them being shared.

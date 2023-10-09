@@ -389,8 +389,7 @@ def get_platform_codes(fw_versions: List[bytes]) -> Set[Tuple[bytes, Optional[by
       date = date_match.group() if date_match else None
       if part is not None:
         # part number starts with generic ECU part type, add what is specific to platform
-        # print(part, part[-5:-3])
-        code += b"-" + part[-5:-3]
+        code += b"-" + part[-5:]
 
       codes.add((code, date))
   return codes
@@ -416,11 +415,13 @@ def match_fw_to_car_fuzzy(live_fw_versions) -> Set[str]:
 
       # Expected platform codes & dates
       codes = get_platform_codes(expected_versions)
-      expected_platform_codes, expected_dates = map(set, zip(*codes))
+      expected_platform_codes = {code[:2] for code, _ in codes}
+      expected_dates = {date for _, date in codes if date is not None}
 
       # Found platform codes & dates
       codes = get_platform_codes(live_fw_versions.get(addr, set()))
-      found_platform_codes, found_dates = map(set, zip(*codes))
+      found_platform_codes = {code[:2] for code, _ in codes}
+      found_dates = {date for _, date in codes if date is not None}
 
       # Check platform code + part number matches for any found versions
       if not any(found_platform_code in expected_platform_codes for found_platform_code in found_platform_codes):
