@@ -121,7 +121,6 @@ class TestHyundaiFingerprint(unittest.TestCase):
     for car_model, ecus in FW_VERSIONS.items():
       with self.subTest(car_model=car_model.value):
         for ecu, fws in ecus.items():
-          part_numbers: set[bytes] = set()
           if ecu[0] not in PLATFORM_CODE_ECUS:
             continue
 
@@ -129,11 +128,7 @@ class TestHyundaiFingerprint(unittest.TestCase):
           for fw in fws:
             result = get_platform_codes([fw])
             self.assertEqual(1, len(result), f"Unable to parse FW: {fw}")
-            # part_numbers.add(list(result)[0][0].split(b"-")[1][0])
-            print(list(result)[0][0].split(b"-")[1][0])
             codes |= result
-
-          # self.assertEqual(len(part_numbers), 1, f"Multiple part number prefixes for platform: {part_numbers}")
 
           if ecu[0] not in DATE_FW_ECUS or car_model in NO_DATES_PLATFORMS:
             self.assertTrue(all(date is None for _, date in codes))

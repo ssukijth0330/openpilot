@@ -416,13 +416,11 @@ def match_fw_to_car_fuzzy(live_fw_versions) -> Set[str]:
 
       # Expected platform codes & dates
       codes = get_platform_codes(expected_versions)
-      expected_platform_codes = {code for code, _ in codes}
-      expected_dates = {date for _, date in codes if date is not None}
+      expected_platform_codes, expected_dates = map(set, zip(*codes))
 
       # Found platform codes & dates
       codes = get_platform_codes(live_fw_versions.get(addr, set()))
-      found_platform_codes = {code for code, _ in codes}
-      found_dates = {date for _, date in codes if date is not None}
+      found_platform_codes, found_dates = map(set, zip(*codes))
 
       # Check platform code + part number matches for any found versions
       if not any(found_platform_code in expected_platform_codes for found_platform_code in found_platform_codes):
