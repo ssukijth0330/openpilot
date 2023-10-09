@@ -389,7 +389,8 @@ def get_platform_codes(fw_versions: List[bytes]) -> Set[Tuple[bytes, Optional[by
       date = date_match.group() if date_match else None
       if part is not None:
         # part number starts with generic ECU part type, add what is specific to platform
-        code += b"-" + part[-5:]
+        # print(part, part[-5:-3])
+        code += b"-" + part[-5:-3]
 
       codes.add((code, date))
   return codes
