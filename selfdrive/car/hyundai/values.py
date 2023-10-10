@@ -522,6 +522,10 @@ FW_QUERY_CONFIG = FwQueryConfig(
       obd_multiplexing=False,
     ),
   ],
+  non_essential_ecus={
+    Ecu.engine: [CAR.KIA_SORENTO],
+    Ecu.transmission: [CAR.KIA_SORENTO],
+  },
   extra_ecus=[
     (Ecu.adas, 0x730, None),         # ADAS Driving ECU on HDA2 platforms
     (Ecu.parkingAdas, 0x7b1, None),  # ADAS Parking ECU (may exist on all platforms)
@@ -1847,13 +1851,16 @@ FW_VERSIONS = {
   },
   CAR.KIA_SORENTO: {
     (Ecu.fwdCamera, 0x7c4, None): [
-      b'\xf1\x00UMP LKAS AT USA LHD 1.01 1.01 95740-C6550 d01'
+      b'\xf1\x00UMP LKAS AT USA LHD 1.01 1.01 95740-C6550 d01',
+      b'\xf1\x00UM  LDWS AT USA LHD 1.00 1.00 95790-C6500 520',
     ],
     (Ecu.abs, 0x7d1, None): [
-      b'\xf1\x00UM ESC \x0c 12 \x18\x05\x06 58910-C6330'
+      b'\xf1\x00UM ESC \x0c 12 \x18\x05\x06 58910-C6330',
+      b'\xf1\x00UM ESC \x0b 14 \x17\x06& 58910-C6940',
     ],
     (Ecu.fwdRadar, 0x7D0, None): [
-      b'\xf1\x00UM__ SCC F-CUP      1.00 1.00 96400-C6500         '
+      b'\xf1\x00UM__ SCC F-CUP      1.00 1.00 96400-C6500         ',
+      b'\xf1\x00UM__ SCC F-CUP      1.00 1.00 96400-C6010         ',
     ],
     (Ecu.transmission, 0x7e1, None): [
       b'\xf1\x87LDKUAA0348164HE3\x87www\x87www\x88\x88\xa8\x88w\x88\x97xw\x88\x97x\x86o\xf8\xff\x87f\x7f\xff\x15\xe0\xf1\x81U811\x00\x00\x00\x00\x00\x00\xf1\x00bcsh8p54  U811\x00\x00\x00\x00\x00\x00TUM4G33NL3V|DG'
