@@ -33,6 +33,8 @@ class CarInterface(CarInterfaceBase):
     hda2 = Ecu.adas in [fw.ecu for fw in car_fw]
     CAN = CanBus(None, hda2, fingerprint)
 
+    ret.flags |= HyundaiFlags.ENABLE_BLINKERS.value
+
     if candidate in CANFD_CAR:
       # detect HDA2 with ADAS Driving ECU
       if hda2:
