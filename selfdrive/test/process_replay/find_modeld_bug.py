@@ -1,27 +1,20 @@
 #!/usr/bin/env python3
 import sys
-import time
 import numpy as np
 from pathlib import Path
 from typing import Dict, Optional
 from setproctitle import setproctitle
-from cereal.messaging import PubMaster, SubMaster
-from cereal.visionipc import VisionIpcClient, VisionStreamType, VisionBuf
 from openpilot.system.swaglog import cloudlog
-from openpilot.common.params import Params
-from openpilot.common.filter_simple import FirstOrderFilter
 from openpilot.common.realtime import config_realtime_process
-from openpilot.common.transformations.model import get_warp_matrix
 from openpilot.selfdrive.modeld.runners import ModelRunner, Runtime
 from openpilot.selfdrive.modeld.models.commonmodel_pyx import ModelFrame, CLContext
-from openpilot.selfdrive.modeld.models.driving_pyx import (
-  PublishState, create_model_msg, create_pose_msg,
-  FEATURE_LEN, HISTORY_BUFFER_LEN, DESIRE_LEN, TRAFFIC_CONVENTION_LEN, NAV_FEATURE_LEN, NAV_INSTRUCTION_LEN,
-  OUTPUT_SIZE, NET_OUTPUT_SIZE, MODEL_FREQ)
+from openpilot.selfdrive.modeld.models.driving_pyx import (FEATURE_LEN, HISTORY_BUFFER_LEN,
+                                                           DESIRE_LEN, TRAFFIC_CONVENTION_LEN, NAV_FEATURE_LEN, NAV_INSTRUCTION_LEN,
+                                                           NET_OUTPUT_SIZE)
 
 MODEL_PATHS = {
-  ModelRunner.THNEED: Path(__file__).parent / 'models/supercombo.thneed',
-  ModelRunner.ONNX: Path(__file__).parent / 'models/supercombo.onnx'}
+  ModelRunner.THNEED: Path(__file__).parent.parent.parent / 'modeld/models/supercombo.thneed',
+  ModelRunner.ONNX: Path(__file__).parent.parent.parent / 'modeld/models/supercombo.onnx'}
 
 class FrameMeta:
   frame_id: int = 0
@@ -60,8 +53,7 @@ class ModelState:
       self.model.addInput(k, v)
     self.cnt = 0
 
-  def run(self, buf: VisionBuf, wbuf: VisionBuf, transform: np.ndarray, transform_wide: np.ndarray,
-                inputs: Dict[str, np.ndarray], prepare_only: bool) -> Optional[np.ndarray]:
+  def run(self) -> Optional[np.ndarray]:
 
     # if getCLBuffer is not None, frame will be None
     self.cnt += 1
@@ -72,12 +64,8 @@ class ModelState:
     self.model.setInputBuffer("input_imgs", img_val * np.ones((128 * 256 * 12), dtype=np.float32))
     self.model.setInputBuffer("big_input_imgs", img_val * np.ones((128 * 256 * 12), dtype=np.float32))
 
-    if prepare_only:
-      return None
 
     self.model.execute()
-    self.inputs['features_buffer'][:-FEATURE_LEN] = self.inputs['features_buffer'][FEATURE_LEN:]
-    self.inputs['features_buffer'][-FEATURE_LEN:] = self.output[OUTPUT_SIZE:OUTPUT_SIZE+FEATURE_LEN]
     return self.output
 
 
@@ -89,28 +77,6 @@ def main():
   cl_context = CLContext()
   model = ModelState(cl_context)
   cloudlog.warning("models loaded, modeld starting")
-
-  # messaging
-  pm = PubMaster(["modelV2", "cameraOdometry"])
-  sm = SubMaster(["lateralPlan", "roadCameraState", "liveCalibration", "driverMonitoringState", "navModel", "navInstruction"])
-
-  state = PublishState()
-  params = Params()
-
-  # setup filter to track dropped frames
-  frame_dropped_filter = FirstOrderFilter(0., 10., 1. / MODEL_FREQ)
-  frame_id = 0
-  last_vipc_frame_id = 0
-  run_count = 0
-  # last = 0.0
-
-  model_transform_main = np.zeros((3, 3), dtype=np.float32)
-  model_transform_extra = np.zeros((3, 3), dtype=np.float32)
-  live_calib_seen = False
-  buf_main, buf_extra = None, None
-  meta_main = FrameMeta()
-  meta_extra = FrameMeta()
-
   raw_preds_prev = None
   cnt = 0
   err_cnt = 0
@@ -118,11 +84,8 @@ def main():
     raw_preds = []
     model.inputs['features_buffer'][:] = 0
 
-    for i in range(10):
-      mt1 = time.perf_counter()
-      raw_preds.append(np.copy(np.frombuffer(model.run(buf_main, buf_extra, model_transform_main, model_transform_extra, {}, False), dtype=np.int8)))
-      mt2 = time.perf_counter()
-      model_execution_time = mt2 - mt1
+    for _ in range(10):
+      raw_preds.append(np.copy(np.frombuffer(model.run(), dtype=np.int8)))
 
 
     #raw_preds = [msg.modelV2.rawPredictions for msg in log_msgs if msg.which() == "modelV2"]
@@ -132,9 +95,13 @@ def main():
           assert len(raw_preds[i]) > 0
           a = raw_preds[i]
           b = raw_preds_prev[i]
-          assert np.all(a == b)
+          equal = a == b
+          assert np.all(equal)
           assert max(a-b) == 0
         except Exception as e:
+          unequal_idxs = np.where(0 == equal)[0]
+          print(f'ERROR: {e}')
+          print(f'UNEQUAL IDXS: {unequal_idxs}')
           err_cnt += 1
     cnt += 1
     raw_preds_prev = raw_preds
