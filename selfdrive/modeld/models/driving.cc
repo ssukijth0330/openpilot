@@ -289,7 +289,10 @@ void fill_model(cereal::ModelDataV2::Builder &framed, const ModelOutput &net_out
 void fill_model_msg(MessageBuilder &msg, float *net_output_data, PublishState &ps, uint32_t vipc_frame_id, uint32_t vipc_frame_id_extra, uint32_t frame_id, float frame_drop,
                     uint64_t timestamp_eof, uint64_t timestamp_llk, float model_execution_time, const bool nav_enabled, const bool valid) {
   const uint32_t frame_age = (frame_id > vipc_frame_id) ? (frame_id - vipc_frame_id) : 0;
-  auto framed = msg.initEvent(valid).initModelV2();
+
+  auto mm = msg.initEvent(valid);
+  mm.setLogMonoTime(timestamp_eof);
+  auto framed = mm.initModelV2();
   framed.setFrameId(vipc_frame_id);
   framed.setFrameIdExtra(vipc_frame_id_extra);
   framed.setFrameAge(frame_age);
@@ -315,7 +318,9 @@ void fill_pose_msg(MessageBuilder &msg, float *net_output_data, uint32_t vipc_fr
     const auto &road_transform_trans_mean = net_outputs.road_transform.position_mean;
     const auto &road_transform_trans_std = net_outputs.road_transform.position_std;
 
-    auto posenetd = msg.initEvent(valid && (vipc_dropped_frames < 1)).initCameraOdometry();
+    auto mm = msg.initEvent(valid && (vipc_dropped_frames < 1));
+    mm.setLogMonoTime(timestamp_eof);
+    auto posenetd = mm.initCameraOdometry();
     posenetd.setTrans({v_mean.x, v_mean.y, v_mean.z});
     posenetd.setRot({r_mean.x, r_mean.y, r_mean.z});
     posenetd.setWideFromDeviceEuler({t_mean.x, t_mean.y, t_mean.z});

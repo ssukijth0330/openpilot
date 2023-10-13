@@ -245,8 +245,8 @@ def main():
 
     if model_output is not None:
       pm.send("modelV2", create_model_msg(model_output, state, meta_main.frame_id, meta_extra.frame_id, frame_id, frame_drop_ratio,
-                                          meta_main.timestamp_eof, timestamp_llk, model_execution_time, nav_enabled, live_calib_seen))
-      pm.send("cameraOdometry", create_pose_msg(model_output, meta_main.frame_id, vipc_dropped_frames, meta_main.timestamp_eof, live_calib_seen))
+                                          sm['roadCameraState'].timestampEof, timestamp_llk, model_execution_time, nav_enabled, live_calib_seen))
+      pm.send("cameraOdometry", create_pose_msg(model_output, meta_main.frame_id, vipc_dropped_frames, sm['roadCameraState'].timestampEof, live_calib_seen))
 
     # print("model process: %.2fms, from last %.2fms, vipc_frame_id %u, frame_id, %u, frame_drop %.3f" %
     #   ((mt2 - mt1)*1000, (mt1 - last)*1000, meta_extra.frame_id, frame_id, frame_drop_ratio))

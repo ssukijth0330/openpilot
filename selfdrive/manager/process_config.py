@@ -92,9 +92,9 @@ procs = [
 ]
 
 if PC:
-  ip = "10.42.0.146"
+  ip = "10.42.0.2"
   procs = [
-    NativeProcess("vipc", "tools/camerastream", ["./compressed_vipc.py", ip, "--cams", "0,1", "--silent"], only_onroad),
+    NativeProcess("vipc", "tools/camerastream", ["./compressed_vipc.py", ip, "--cams", "0,1", "--silent"], always_run),
     NativeProcess("modeld", "selfdrive/modeld", ["./modeld"], only_onroad),
     NativeProcess("bridge", "cereal/messaging", ["./bridge"], always_run),
     NativeProcess("bridge2", "cereal/messaging", ["./bridge", ip, "lateralPlan,roadCameraState,wideRoadCameraState,driverMonitoringState,liveCalibration,navModel,navInstruction,pandaStates,deviceState"], always_run),
