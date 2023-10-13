@@ -191,8 +191,8 @@ def main() -> None:
   manager_init()
 
   # Start UI early so prepare can happen in the background
-  if not prepare_only:
-    managed_processes['ui'].start()
+  #if not prepare_only:
+  #  managed_processes['ui'].start()
 
   manager_prepare()
 

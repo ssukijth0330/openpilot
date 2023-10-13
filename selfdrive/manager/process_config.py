@@ -56,7 +56,7 @@ procs = [
   NativeProcess("encoderd", "system/loggerd", ["./encoderd"], only_onroad),
   NativeProcess("stream_encoderd", "system/loggerd", ["./encoderd", "--stream"], notcar),
   NativeProcess("loggerd", "system/loggerd", ["./loggerd"], logging),
-  NativeProcess("modeld", "selfdrive/modeld", ["./modeld"], only_onroad),
+  NativeProcess("modeld", "selfdrive/modeld", ["./modeld"], only_onroad, enabled=False),
   NativeProcess("mapsd", "selfdrive/navd", ["./mapsd"], only_onroad),
   PythonProcess("navmodeld", "selfdrive.modeld.navmodeld", only_onroad),
   NativeProcess("sensord", "system/sensord", ["./sensord"], only_onroad, enabled=not PC),
@@ -84,9 +84,18 @@ procs = [
   PythonProcess("uploader", "system.loggerd.uploader", always_run),
   PythonProcess("statsd", "selfdrive.statsd", always_run),
 
+  NativeProcess("bridge", "cereal/messaging", ["./bridge", "10.42.0.1", "modelV2,cameraOdometry"], only_onroad),
+
   # debug procs
-  NativeProcess("bridge", "cereal/messaging", ["./bridge"], notcar),
   PythonProcess("webjoystick", "tools.bodyteleop.web", notcar),
 ]
+
+if PC:
+  ip = "10.42.0.146"
+  procs = [
+    NativeProcess("vipc", "tools/camerastream", ["./compressed_vipc.py", ip], only_onroad),
+    NativeProcess("modeld", "selfdrive/modeld", ["./modeld"], only_onroad),
+    NativeProcess("bridge", "cereal/messaging", ["./bridge", ip, "lateralPlan,roadCameraState,wideRoadCameraState,driverMonitoringState,liveCalibration,navModel,navInstruction,pandaStates,deviceState"], always_run),
+  ]
 
 managed_processes = {p.name: p for p in procs}
