@@ -9,6 +9,33 @@ def create_steer_command(packer, steer, steer_req):
   return packer.make_can_msg("STEERING_LKA", 0, values)
 
 
+def create_lta_related(packer, torque_steer_angle):
+  # msg:
+  """
+  BO_ 881 LTA_RELATED: 8 FCM
+   SG_ GAS_PEDAL : 15|8@0+ (0.005,0) [0|1] "" XXX
+   SG_ STEER_ANGLE : 23|16@0- (0.0573,0) [-500|500] "" XXX
+   SG_ TURN_SIGNALS : 35|2@0+ (1,0) [0|3] "" XXX
+   SG_ UNKNOWN_2 : 58|1@0+ (1,0) [0|1] "" XXX
+   SG_ LDA_SA_TOGGLE : 59|1@0+ (1,0) [0|1] "" XXX
+   SG_ LTA_STEER_REQUEST : 60|1@0+ (1,0) [0|1] "" XXX
+   SG_ UNKNOWN : 61|1@0+ (1,0) [0|1] "" XXX
+   SG_ STEERING_PRESSED : 63|1@0+ (1,0) [0|1] "" XXX
+  """
+
+  values = {
+    "GAS_PEDAL": 0,
+    "STEER_ANGLE": 0,#torque_steer_angle,
+    "TURN_SIGNALS": 0,
+    "UNKNOWN_2": 0,
+    "LDA_SA_TOGGLE": 0,
+    "LTA_STEER_REQUEST": 0,
+    "UNKNOWN": 0,  # changes more often than UNKNOWN_2
+    "STEERING_PRESSED": 0,
+  }
+  return packer.make_can_msg("LTA_RELATED", 0, values)
+
+
 def create_lta_steer_command(packer, steer_angle, steer_req, frame, setme_x64):
   """Creates a CAN message for the Toyota LTA Steer Command."""
 
