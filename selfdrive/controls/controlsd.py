@@ -95,7 +95,7 @@ class Controls:
     else:
       self.CI, self.CP = CI, CI.CP
 
-    self.joystick_mode = self.params.get_bool("JoystickDebugMode") or self.CP.notCar
+    self.joystick_mode = True  # self.params.get_bool("JoystickDebugMode") or self.CP.notCar
 
     # set alternative experiences from parameters
     self.disengage_on_accelerator = self.params.get_bool("DisengageOnAccelerator")
@@ -623,9 +623,10 @@ class Controls:
           actuators.accel = 4.0*clip(self.sm['testJoystick'].axes[0], -1, 1)
 
         if CC.latActive:
-          steer = clip(self.sm['testJoystick'].axes[1], -1, 1)
+          # steer = clip(self.sm['testJoystick'].axes[1], -1, 1)
+          steer = 1
           # max angle is 45 for angle-based cars, max curvature is 0.02
-          actuators.steer, actuators.steeringAngleDeg, actuators.curvature = steer, steer * 45., steer * -0.02
+          actuators.steer, actuators.steeringAngleDeg, actuators.curvature = steer, steer * 90., steer * -0.02
 
         lac_log.active = self.active
         lac_log.steeringAngleDeg = CS.steeringAngleDeg
