@@ -156,6 +156,8 @@ def create_spas_messages(packer, CAN, frame, left_blink, right_blink, bus):
   ret = []
 
   values = {
+    "NEW_SIGNAL_1": 0,
+    "NEW_SIGNAL_2": 0,
   }
   ret.append(packer.make_can_msg("SPAS1", bus, values))
 
