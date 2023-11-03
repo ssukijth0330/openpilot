@@ -163,7 +163,7 @@ def fingerprint(logcan, sendcan, num_pandas):
   params.put("CarVin", vin)
 
   # disable OBD multiplexing for potential ECU knockouts
-  set_obd_multiplexing(params, False)
+  set_obd_multiplexing(params, True)
   params.put_bool("FirmwareQueryDone", True)
 
   fw_query_time = time.monotonic() - start_time
