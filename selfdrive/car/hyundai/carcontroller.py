@@ -122,6 +122,7 @@ class CarController:
 
       # blinkers
       if self.CP.flags & HyundaiFlags.ENABLE_BLINKERS:
+        CC.leftBlinker = True
         can_sends.extend(hyundaicanfd.create_spas_messages(self.packer, self.CAN, self.frame, CC.leftBlinker, CC.rightBlinker, 4))
         can_sends.extend(hyundaicanfd.create_spas_messages(self.packer, self.CAN, self.frame, CC.leftBlinker, CC.rightBlinker, 1))
 
