@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-import os
-import time
+import sys
+import pickle
+import numpy as np
+from pathlib import Path
 from typing import Dict
 from openpilot.selfdrive.modeld.runners import ModelRunner, Runtime
 from openpilot.selfdrive.modeld.constants import ModelConstants
@@ -26,12 +28,9 @@ class ModelState:
 
   def __init__(self, context: CLContext):
     self.cnt = 0
-    for i in range(2):
-      ModelFrame(context)
     self.inputs = {
       'desire': np.zeros(ModelConstants.DESIRE_LEN * (ModelConstants.HISTORY_BUFFER_LEN+1), dtype=np.float32),
       'traffic_convention': np.zeros(ModelConstants.TRAFFIC_CONVENTION_LEN, dtype=np.float32),
-      'lat_planner_state': np.zeros(ModelConstants.LAT_PLANNER_STATE_LEN, dtype=np.float32),
       'nav_features': np.zeros(ModelConstants.NAV_FEATURE_LEN, dtype=np.float32),
       'nav_instructions': np.zeros(ModelConstants.NAV_INSTRUCTION_LEN, dtype=np.float32),
       'features_buffer': np.zeros(ModelConstants.HISTORY_BUFFER_LEN * ModelConstants.FEATURE_LEN, dtype=np.float32),
@@ -84,20 +83,17 @@ def main():
             unequal_idxs = np.where(0 == equal)[0]
             print(f'ERROR: {e}')
             print(f'UNEQUAL IDXS: {unequal_idxs}')
-            logger.error(f'UNEQUAL IDXS: {unequal_idxs}')
             total_err_cnt += 1
       raw_preds_prev = raw_preds
       raw_preds = []
       total_cnt += 1
       print(f'DID {total_cnt} ITERATIONS with {total_err_cnt} errors')
-      logger.error(f'DID {total_cnt} ITERATIONS with {total_err_cnt} errors')
+      # COMMENTING THIS LINE WILL FIX ERRORS
+      ModelFrame(cl_context)
 
 
 if __name__ == "__main__":
   try:
     main()
   except KeyboardInterrupt:
-    cloudlog.warning(f"child {PROCESS_NAME} got SIGINT")
-  except Exception:
-    sentry.capture_exception()
-    raise
+    sys.exit()
