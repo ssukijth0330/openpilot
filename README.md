@@ -39,7 +39,7 @@ Running on a dedicated device in a car
 ------
 
 To use openpilot in a car, you need four things
-1. **Supported Device:** A comma 3/3X. You can purchase these devices from (https://comma.ai/shop/comma-3x)
+1. **Supported Device:** A comma 3/3X. You can purchase these devices from https://comma.ai/shop/comma-3x
   
 2. **Software:** The setup procedure for the comma 3/3X allows users to enter a URL for custom software.
   To install the release version of openpilot, use the URL `openpilot.comma.ai`.
