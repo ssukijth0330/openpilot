@@ -9,6 +9,8 @@ int main(int argc, char **argv) {
   qInstallMessageHandler(swagLogMessageHandler);
   setpriority(PRIO_PROCESS, 0, -20);
 
+  qputenv("QT_QPA_PLATFORM", QByteArrayLiteral("offscreen"));
+
   QApplication a(argc, argv);
   std::signal(SIGINT, sigTermHandler);
   std::signal(SIGTERM, sigTermHandler);
