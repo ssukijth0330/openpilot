@@ -22,6 +22,7 @@ class CarControllerParams:
   STEER_STEP = 1
   STEER_MAX = 1500
   STEER_ERROR_MAX = 350     # max delta between torque cmd and torque motor
+  ANGLE_ERROR = 5
 
   # Lane Tracing Assist (LTA) control limits
   # Assuming a steering ratio of 13.7:

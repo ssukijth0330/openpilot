@@ -67,14 +67,21 @@ class CarController:
       apply_steer = 0
       apply_steer_req = False
       if self.frame % 2 == 0:
+        # un-offset current angle
+        current_angle = CS.out.steeringAngleDeg + CS.out.steeringAngleOffsetDeg
+
         # EPS uses the torque sensor angle to control with, offset to compensate
         apply_angle = actuators.steeringAngleDeg + CS.out.steeringAngleOffsetDeg
+
+        # angle error limiting for driver torque
+        apply_angle = clip(apply_angle, current_angle - CarControllerParams.ANGLE_ERROR,
+                           current_angle + CarControllerParams.ANGLE_ERROR)
 
         # Angular rate limit based on speed
         apply_angle = apply_std_steer_angle_limits(apply_angle, self.last_angle, CS.out.vEgoRaw, self.params)
 
         if not lat_active:
-          apply_angle = CS.out.steeringAngleDeg + CS.out.steeringAngleOffsetDeg
+          apply_angle = current_angle
 
         self.last_angle = clip(apply_angle, -MAX_STEER_ANGLE, MAX_STEER_ANGLE)
 
