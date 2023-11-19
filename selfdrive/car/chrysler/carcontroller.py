@@ -84,7 +84,7 @@ class CarController:
     if self.CP.openpilotLongitudinalControl and (self.frame % self.params.ACC_CONTROL_STEP) == 0:
       long_active = CC.longActive
       accel = clip(CC.actuators.accel, self.params.ACCEL_MIN, self.params.ACCEL_MAX)
-      starting = CC.actuators.longControlState == LongCtrlState.starting # TODO: starting state not enabled
+      starting = CS.out.vEgo < 0.25 and accel > 0.0 # TODO: use LongCtrlState.starting with disabled startAccel?
       stopping = CC.actuators.longControlState == LongCtrlState.stopping
 
       gas = self.params.INACTIVE_GAS
@@ -92,9 +92,9 @@ class CarController:
       if long_active:
         # TODO: use negative for engine braking?
         if accel > 0.05:
-          gas_mult = int(round(interp(accel, self.params.GAS_LOOKUP_BP, self.params.GAS_LOOKUP_V)))
+          gas_max = interp(CS.out.vEgo, self.params.GAS_MAX_BP, self.params.GAS_MAX_V)
           # TODO: consider current engine torque output (if negative increase request?)
-          gas = clip(max(accel, 0) * gas_mult, self.params.GAS_MIN, self.params.GAS_MAX)
+          gas = clip(round(interp(max(accel, 0), 0, gas_max)), self.params.GAS_MIN, self.params.GAS_MAX)
         if accel < 0.05:
           brakes = min(accel, 0)
 

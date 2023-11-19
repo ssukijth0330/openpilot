@@ -77,13 +77,18 @@ def create_acc_commands(packer, long_active, gas, accel, starting, stopping):
   das_3_values = {
     'ACC_AVAILABLE': 1,
     'ACC_ACTIVE': long_active,
-    'ACC_DECEL_REQ': accel < 0.0 or stopping,
-    'ACC_DECEL': -2.0 if stopping else accel,
-    'ENGINE_TORQUE_REQUEST_MAX': gas > 0.0 and not stopping,
-    'ENGINE_TORQUE_REQUEST': gas if not stopping else 0.0,
+    'ACC_DECEL_REQ': accel < 0.0,
+    'ACC_DECEL': accel,
+    'ENGINE_TORQUE_REQUEST_MAX': gas > 0.0,
+    'ENGINE_TORQUE_REQUEST': gas,
     'ACC_STANDSTILL': stopping,
     'ACC_GO': starting,
+    # TODO: does this improve fuel economy?
+    'DISABLE_FUEL_SHUTOFF': gas > 0.0,
+    # TODO: does this have any impact on ACC braking responsiveness?
     'ACC_BRK_PREP': accel < 0.0,
+    # TODO: does this have any impact on ACC braking responsiveness?
+    #'COLLISION_BRK_PREP': ?,
   }
   commands.append(packer.make_can_msg("DAS_3", 0, das_3_values))
 

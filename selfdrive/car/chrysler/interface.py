@@ -89,9 +89,8 @@ class CarInterface(CarInterfaceBase):
     else:
       raise ValueError(f"Unsupported car: {candidate}")
 
-    ret.startingState = True
-    ret.vEgoStarting = 0.5
-    ret.startAccel = 0.5
+    ret.longitudinalTuning.kpV = [0.25]
+    ret.longitudinalTuning.kiV = [0.05]
     ret.longitudinalActuatorDelayLowerBound = 0.5
     ret.longitudinalActuatorDelayUpperBound = 0.5
 

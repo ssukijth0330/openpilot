@@ -58,8 +58,8 @@ class CarControllerParams:
     self.ACC_CONTROL_STEP = 2  # 50Hz
     self.GAS_MIN = -500.0
     self.GAS_MAX = 500.0
-    self.GAS_LOOKUP_BP = [0, 2]
-    self.GAS_LOOKUP_V = [50, 250]
+    self.GAS_MAX_BP = [1, 5, 20]
+    self.GAS_MAX_V = [self.GAS_MAX / 4, self.GAS_MAX / 2, self.GAS_MAX]
     self.INACTIVE_GAS = 0.0
 
     self.ACCEL_MIN = -3.5
