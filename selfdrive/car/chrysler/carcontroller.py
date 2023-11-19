@@ -94,7 +94,7 @@ class CarController:
         if accel > 0.05:
           gas_max = interp(CS.out.vEgo, self.params.GAS_MAX_BP, self.params.GAS_MAX_V)
           # TODO: consider current engine torque output (if negative increase request?)
-          gas = clip(round(interp(max(accel, 0), 0, gas_max)), self.params.GAS_MIN, self.params.GAS_MAX)
+          gas = clip(round(interp(max(accel, 0), [0, self.params.ACCEL_MAX], [0, gas_max])), self.params.GAS_MIN, self.params.GAS_MAX)
         if accel < 0.05:
           brakes = min(accel, 0)
 
