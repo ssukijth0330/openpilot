@@ -1,16 +1,24 @@
 #!/usr/bin/env python3
 from cereal import car
 from panda import Panda
-from openpilot.selfdrive.car import get_safety_config
-from openpilot.selfdrive.car.chrysler.values import CAR, RAM_HD, RAM_DT, RAM_CARS, ChryslerFlags
+from openpilot.selfdrive.car import create_button_events, get_safety_config
+from openpilot.selfdrive.car.chrysler.values import CAR, RAM_HD, RAM_DT, RAM_CARS, ChryslerFlags, CruiseButtons
 from openpilot.selfdrive.car.interfaces import CarInterfaceBase
 
+ButtonType = car.CarState.ButtonEvent.Type
+GearShifter = car.CarState.GearShifter
+BUTTONS_DICT = {CruiseButtons.ACCEL: ButtonType.accelCruise, CruiseButtons.DECEL: ButtonType.decelCruise,
+                CruiseButtons.RESUME: ButtonType.resumeCruise, CruiseButtons.CANCEL: ButtonType.cancel}
 
 class CarInterface(CarInterfaceBase):
   @staticmethod
   def _get_params(ret, candidate, fingerprint, car_fw, experimental_long, docs):
     ret.carName = "chrysler"
     ret.dashcamOnly = candidate in RAM_HD
+
+    ret.experimentalLongitudinalAvailable = True
+    ret.openpilotLongitudinalControl = experimental_long
+    ret.pcmCruise = not ret.openpilotLongitudinalControl
 
     # radar parsing needs some work, see https://github.com/commaai/openpilot/issues/26842
     ret.radarUnavailable = True # DBC[candidate]['radar'] is None
@@ -23,6 +31,9 @@ class CarInterface(CarInterfaceBase):
       ret.safetyConfigs[0].safetyParam |= Panda.FLAG_CHRYSLER_RAM_HD
     elif candidate in RAM_DT:
       ret.safetyConfigs[0].safetyParam |= Panda.FLAG_CHRYSLER_RAM_DT
+
+    if ret.openpilotLongitudinalControl:
+      ret.safetyConfigs[0].safetyParam |= Panda.FLAG_CHRYSLER_LONG
 
     ret.minSteerSpeed = 3.8  # m/s
     CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning)
@@ -78,6 +89,12 @@ class CarInterface(CarInterfaceBase):
     else:
       raise ValueError(f"Unsupported car: {candidate}")
 
+    ret.startingState = True
+    ret.vEgoStarting = 0.5
+    ret.startAccel = 0.5
+    ret.longitudinalActuatorDelayLowerBound = 0.5
+    ret.longitudinalActuatorDelayUpperBound = 0.5
+
     if ret.flags & ChryslerFlags.HIGHER_MIN_STEERING_SPEED:
       # TODO: allow these cars to steer down to 13 m/s if already engaged.
       ret.minSteerSpeed = 17.5  # m/s 17 on the way up, 13 on the way down once engaged.
@@ -91,7 +108,11 @@ class CarInterface(CarInterfaceBase):
     ret = self.CS.update(self.cp, self.cp_cam)
 
     # events
-    events = self.create_common_events(ret, extra_gears=[car.CarState.GearShifter.low])
+    if self.CS.CP.openpilotLongitudinalControl:
+      ret.buttonEvents = create_button_events(self.CS.cruise_buttons, self.CS.prev_cruise_buttons, BUTTONS_DICT)
+
+    events = self.create_common_events(ret, pcm_enable=self.CS.CP.pcmCruise, extra_gears=[GearShifter.low],
+                                       enable_buttons=(ButtonType.decelCruise, ButtonType.resumeCruise, ButtonType.accelCruise))
 
     # Low speed steer alert hysteresis logic
     if self.CP.minSteerSpeed > 0. and ret.vEgo < (self.CP.minSteerSpeed + 0.5):

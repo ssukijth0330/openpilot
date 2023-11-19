@@ -40,6 +40,13 @@ class CarState(CarStateBase):
     ret.gas = cp.vl["ECM_5"]["Accelerator_Position"]
     ret.gasPressed = ret.gas > 1e-5
 
+    self.prev_cruise_buttons = self.cruise_buttons
+    self.cruise_buttons = int(cp.vl["CRUISE_BUTTONS"]["ACC_Cancel"])
+    if not self.cruise_buttons: # ensure cancel overrides any multi-button pressed state
+      self.cruise_buttons |= int(cp.vl["CRUISE_BUTTONS"]["ACC_Accel"]) << 2
+      self.cruise_buttons |= int(cp.vl["CRUISE_BUTTONS"]["ACC_Decel"]) << 3
+      self.cruise_buttons |= int(cp.vl["CRUISE_BUTTONS"]["ACC_Resume"]) << 4
+
     # car speed
     if self.CP.carFingerprint in RAM_CARS:
       ret.vEgoRaw = cp.vl["ESP_8"]["Vehicle_Speed"] * CV.KPH_TO_MS
@@ -72,12 +79,20 @@ class CarState(CarStateBase):
     # cruise state
     cp_cruise = cp_cam if self.CP.carFingerprint in RAM_CARS else cp
 
-    ret.cruiseState.available = cp_cruise.vl["DAS_3"]["ACC_AVAILABLE"] == 1
-    ret.cruiseState.enabled = cp_cruise.vl["DAS_3"]["ACC_ACTIVE"] == 1
-    ret.cruiseState.speed = cp_cruise.vl["DAS_4"]["ACC_SET_SPEED_KPH"] * CV.KPH_TO_MS
-    ret.cruiseState.nonAdaptive = cp_cruise.vl["DAS_4"]["ACC_STATE"] in (1, 2)  # 1 NormalCCOn and 2 NormalCCSet
-    ret.cruiseState.standstill = cp_cruise.vl["DAS_3"]["ACC_STANDSTILL"] == 1
-    ret.accFaulted = cp_cruise.vl["DAS_3"]["ACC_FAULTED"] != 0
+    if self.CP.openpilotLongitudinalControl:
+      # These are not used for engage/disengage since openpilot keeps track of state using the buttons
+      ret.cruiseState.available = True
+      ret.cruiseState.enabled = False
+      ret.cruiseState.nonAdaptive = False
+      ret.cruiseState.standstill = False
+      ret.accFaulted = False
+    else:
+      ret.cruiseState.available = cp_cruise.vl["DAS_3"]["ACC_AVAILABLE"] == 1
+      ret.cruiseState.enabled = cp_cruise.vl["DAS_3"]["ACC_ACTIVE"] == 1
+      ret.cruiseState.nonAdaptive = cp_cruise.vl["DAS_4"]["ACC_STATE"] in (1, 2)  # 1 NormalCCOn and 2 NormalCCSet
+      ret.cruiseState.standstill = cp_cruise.vl["DAS_3"]["ACC_STANDSTILL"] == 1
+      ret.accFaulted = cp_cruise.vl["DAS_3"]["ACC_FAULTED"] != 0
+      ret.cruiseState.speed = cp_cruise.vl["DAS_4"]["ACC_SET_SPEED_KPH"] * CV.KPH_TO_MS
 
     if self.CP.carFingerprint in RAM_CARS:
       # Auto High Beam isn't Located in this message on chrysler or jeep currently located in 729 message
