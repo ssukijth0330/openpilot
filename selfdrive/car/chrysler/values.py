@@ -56,7 +56,7 @@ class CarControllerParams:
       self.STEER_MAX = 261  # higher than this faults the EPS
 
     self.ACC_CONTROL_STEP = 2  # 50Hz
-    self.GAS_MIN = -500.0
+    self.GAS_MIN = -50.0
     self.GAS_MAX = 500.0
     self.GAS_MAX_BP = [1, 5, 20]
     self.GAS_MAX_V = [self.GAS_MAX / 4, self.GAS_MAX / 2, self.GAS_MAX]

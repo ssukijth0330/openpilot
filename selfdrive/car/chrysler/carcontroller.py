@@ -1,4 +1,5 @@
 import math
+from collections import deque
 
 from cereal import car
 from opendbc.can.packer import CANPacker
@@ -44,7 +45,7 @@ def calc_engine_torque(accel, pitch, transmission_gear, drag_force):
   # https://x-engineer.org/calculate-wheel-torque-engine/
   wheel_torque = force_total * WHEEL_RADIUS
   engine_torque = wheel_torque / FINAL_DRIVE_RATIOS[int(transmission_gear)-1]
-  return max(engine_torque, -50.0)
+  return engine_torque
 
 class CarController:
   def __init__(self, dbc_name, CP, VM):
@@ -59,6 +60,8 @@ class CarController:
 
     self.packer = CANPacker(dbc_name)
     self.params = CarControllerParams(CP)
+
+    self.gas_history = deque(maxlen=int(1/DT_CTRL/self.params.ACC_CONTROL_STEP))
 
   def update(self, CC, CS, now_nanos):
     can_sends = []
@@ -125,16 +128,18 @@ class CarController:
       starting = CS.out.vEgo < 0.25 and accel > 0.0 # TODO: use LongCtrlState.starting with disabled startAccel?
       stopping = CC.actuators.longControlState == LongCtrlState.stopping
 
-      gas = self.params.INACTIVE_GAS
-      brakes = self.params.INACTIVE_ACCEL
       if long_active:
-        # TODO: use negative for engine braking?
-        if accel >= 0.0:
-          pitch = CC.orientationNED[1] if len(CC.orientationNED) > 1 else 0
-          drag_force = calc_drag_force(CS.engine_torque, CS.transmission_gear, pitch, CS.out.aEgo, CS.out.vEgo)
-          gas = clip(calc_engine_torque(accel, pitch, CS.transmission_gear, drag_force), self.params.GAS_MIN, self.params.GAS_MAX)
-        if accel < 0.0:
+        pitch = CC.orientationNED[1] if len(CC.orientationNED) > 1 else 0
+        drag_force = calc_drag_force(CS.engine_torque, CS.transmission_gear, pitch, CS.out.aEgo, CS.out.vEgo)
+        gas_next = clip(calc_engine_torque(accel, pitch, CS.transmission_gear, drag_force), self.params.GAS_MIN, self.params.GAS_MAX)
+        self.gas_history.appendleft(gas_next)
+        gas = sum(self.gas_history) / self.gas_history.maxlen
+        if gas <= self.params.GAS_MIN+1 or accel < 0.1:
           brakes = min(accel, 0)
+      else:
+        self.gas_history.clear()
+        gas = self.params.INACTIVE_GAS
+        brakes = self.params.INACTIVE_ACCEL
 
       can_sends.extend(chryslercan.create_acc_commands(self.packer, long_active, gas, brakes, starting, stopping))
 
