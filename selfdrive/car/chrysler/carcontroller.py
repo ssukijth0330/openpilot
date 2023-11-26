@@ -128,6 +128,8 @@ class CarController:
       starting = CS.out.vEgo < 0.25 and accel > 0.0 # TODO: use LongCtrlState.starting with disabled startAccel?
       stopping = CC.actuators.longControlState == LongCtrlState.stopping
 
+      gas = self.params.INACTIVE_GAS
+      brakes = self.params.INACTIVE_ACCEL
       if long_active:
         pitch = CC.orientationNED[1] if len(CC.orientationNED) > 1 else 0
         drag_force = calc_drag_force(CS.engine_torque, CS.transmission_gear, pitch, CS.out.aEgo, CS.out.vEgo)
@@ -138,8 +140,6 @@ class CarController:
           brakes = min(accel, 0)
       else:
         self.gas_history.clear()
-        gas = self.params.INACTIVE_GAS
-        brakes = self.params.INACTIVE_ACCEL
 
       can_sends.extend(chryslercan.create_acc_commands(self.packer, long_active, gas, brakes, starting, stopping))
 
