@@ -61,7 +61,7 @@ class CarController:
     self.packer = CANPacker(dbc_name)
     self.params = CarControllerParams(CP)
 
-    self.gas_history = deque(maxlen=int(1/DT_CTRL/self.params.ACC_CONTROL_STEP))
+    self.gas_history = deque(maxlen=15)
 
   def update(self, CC, CS, now_nanos):
     can_sends = []
