@@ -1,12 +1,50 @@
+import math
+
 from cereal import car
 from opendbc.can.packer import CANPacker
-from openpilot.common.numpy_fast import clip, interp
+from openpilot.common.numpy_fast import clip
 from openpilot.common.realtime import DT_CTRL
 from openpilot.selfdrive.car import apply_meas_steer_torque_limits
 from openpilot.selfdrive.car.chrysler import chryslercan
 from openpilot.selfdrive.car.chrysler.values import RAM_CARS, CarControllerParams, ChryslerFlags
 
 LongCtrlState = car.CarControl.Actuators.LongControlState
+
+TIRE_SIZE = [275, 55, 20] # 275/55R20
+# https://x-engineer.org/calculate-wheel-radius/
+WHEEL_RADIUS = 0.95 * ((TIRE_SIZE[2] * 25.4 / 2) + (TIRE_SIZE[0] * TIRE_SIZE[1] / 100)) / 1000
+AXLE_RATIO = 3.21 # or 3.92
+FINAL_DRIVE_RATIOS = [x * AXLE_RATIO for x in [4.71, 3.14, 2.10, 1.67, 1.29, 1.00, 0.84, 0.67]]
+# https://web.archive.org/web/20180116135154/https://www.ramtrucks.com/2019/ram-1500.html
+CdA = 13.0 / 10.764 # CdA = frontal drag coefficient x area (ft^2 converted to m^2)
+# https://www.epa.gov/compliance-and-fuel-economy-data/data-cars-used-testing-fuel-economy
+ROLLING_RESISTANCE_COEFF = 46.31 / 5500 # Target Coef A (lbf) / Equivalent Test Weight (lbs.)
+VEHICLE_MASS = 2495 # kg
+GRAVITY = 9.81 # m/s^2
+AIR_DENSITY = 1.225 # kg/m3 (sea level air density of dry air @ 15° C)
+
+def calc_motion_force(aEgo, road_pitch):
+  force_parallel = VEHICLE_MASS * aEgo
+  force_perpendicular = VEHICLE_MASS * GRAVITY * math.sin(road_pitch)
+  return force_parallel + force_perpendicular
+
+def calc_drag_force(engine_torque, transmision_gear, road_pitch, aEgo, vEgo, wind=0):
+  if engine_torque <= 0 or vEgo < 2 or transmision_gear == 0:
+    # https://x-engineer.org/rolling-resistance/
+    force_rolling = ROLLING_RESISTANCE_COEFF * VEHICLE_MASS * GRAVITY
+    # https://x-engineer.org/aerodynamic-drag/
+    force_drag = 0.5 * CdA * AIR_DENSITY * ((vEgo - wind)**2)
+    return force_rolling + force_drag
+
+  total_force = engine_torque * FINAL_DRIVE_RATIOS[transmision_gear-1] / WHEEL_RADIUS
+  return total_force - calc_motion_force(aEgo, road_pitch)
+
+def calc_engine_torque(accel, pitch, transmission_gear, drag_force):
+  force_total = calc_motion_force(accel, pitch) + drag_force
+  # https://x-engineer.org/calculate-wheel-torque-engine/
+  wheel_torque = force_total * WHEEL_RADIUS
+  engine_torque = wheel_torque / FINAL_DRIVE_RATIOS[int(transmission_gear)-1]
+  return max(engine_torque, -50.0)
 
 class CarController:
   def __init__(self, dbc_name, CP, VM):
@@ -91,11 +129,11 @@ class CarController:
       brakes = self.params.INACTIVE_ACCEL
       if long_active:
         # TODO: use negative for engine braking?
-        if accel > 0.05:
-          gas_max = interp(CS.out.vEgo, self.params.GAS_MAX_BP, self.params.GAS_MAX_V)
-          # TODO: consider current engine torque output (if negative increase request?)
-          gas = clip(round(interp(max(accel, 0), [0, self.params.ACCEL_MAX], [0, gas_max])), self.params.GAS_MIN, self.params.GAS_MAX)
-        if accel < 0.05:
+        if accel >= 0.0:
+          pitch = CC.orientationNED[1] if len(CC.orientationNED) > 1 else 0
+          drag_force = calc_drag_force(CS.engine_torque, CS.transmission_gear, pitch, CS.out.aEgo, CS.out.vEgo)
+          gas = clip(calc_engine_torque(accel, pitch, CS.transmission_gear, drag_force), self.params.GAS_MIN, self.params.GAS_MAX)
+        if accel < 0.0:
           brakes = min(accel, 0)
 
       can_sends.extend(chryslercan.create_acc_commands(self.packer, long_active, gas, brakes, starting, stopping))

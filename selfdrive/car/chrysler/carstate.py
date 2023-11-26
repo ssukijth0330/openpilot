@@ -109,6 +109,9 @@ class CarState(CarStateBase):
 
     self.lkas_car_model = cp_cam.vl["DAS_6"]["CAR_MODEL"]
     self.button_counter = cp.vl["CRUISE_BUTTONS"]["COUNTER"]
+    self.engine_torque = cp.vl["ECM_1"]["ENGINE_TORQUE"]
+    # TODO: need for vehicles other than RAM DT
+    self.transmission_gear = int(cp.vl["TCM_1"]["GEAR"])
 
     return ret
 
@@ -142,6 +145,8 @@ class CarState(CarStateBase):
       messages += [
         ("ESP_8", 50),
         ("EPS_3", 50),
+        ("ECM_1", 100),
+        ("TCM_1", 50),
         ("Transmission_Status", 50),
       ]
     else:
