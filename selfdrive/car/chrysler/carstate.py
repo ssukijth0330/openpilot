@@ -111,7 +111,7 @@ class CarState(CarStateBase):
     self.button_counter = cp.vl["CRUISE_BUTTONS"]["COUNTER"]
     self.engine_torque = cp.vl["ECM_1"]["ENGINE_TORQUE"]
     # TODO: need for vehicles other than RAM DT
-    self.transmission_gear = int(cp.vl["TCM_1"]["GEAR"])
+    self.transmission_gear = int(cp.vl["TCM_1"]["ACTUAL_GEAR"])
 
     return ret
 
