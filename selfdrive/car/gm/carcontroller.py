@@ -167,10 +167,10 @@ class CarController:
       (self.frame % self.params.CAMERA_KEEPALIVE_STEP == 0 or lka_icon_status != self.lka_icon_status_last):
       steer_alert = hud_alert in (VisualAlert.steerRequired, VisualAlert.ldw)
       lka_active = True
-      lka_critical = (i % 200) == 100
-      steer_alert = (i % 200) == 0
+      lka_critical = (self.frame % 200) == 100
+      steer_alert = (self.frame % 200) == 0
       # in 60 secods, stop sending to check for any errors
-      if i < 60 * DT_CTRL:
+      if self.frame < 60 * DT_CTRL:
         can_sends.append(gmcan.create_lka_icon_command(CanBus.SW_GMLAN, lka_active, lka_critical, steer_alert))
         self.lka_icon_status_last = lka_icon_status
 
