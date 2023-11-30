@@ -303,7 +303,7 @@ class TestOnroad(unittest.TestCase):
     self.assertLessEqual(max(mems) - min(mems), 3.0)
 
   def test_gpu_usage(self):
-    self.assertEqual(self.gpu_procs, {"weston", "_ui", "camerad", "selfdrive.modeld.modeld"})
+    self.assertEqual(self.gpu_procs, {"weston", "ui", "camerad", "selfdrive.modeld.modeld"})
 
   def test_camera_processing_time(self):
     result = "\n"
