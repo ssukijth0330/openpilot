@@ -77,8 +77,7 @@ class Soundd:
 
     return ret * self.current_volume
 
-  def stream_callback(self, data_out: np.ndarray, frames: int, time, status) -> None:
-    assert not status
+  def callback(self, data_out: np.ndarray, frames: int, time, status) -> None:
     data_out[:frames, 0] = self.get_sound_data(frames)
 
   def new_alert(self, alert):
@@ -90,7 +89,8 @@ class Soundd:
     volume = ((weighted_db - AMBIENT_DB) / DB_SCALE) * (MAX_VOLUME - MIN_VOLUME) + MIN_VOLUME
     return math.pow(10, (np.clip(volume, MIN_VOLUME, MAX_VOLUME) - 1))
 
-  def main(self):
+  def soundd_thread(self):
+    # sounddevice must be imported after forking processes
     import sounddevice as sd
 
     sm = messaging.SubMaster(['controlsState', 'microphone'])
@@ -109,7 +109,7 @@ class Soundd:
 
 def main():
   s = Soundd()
-  s.main()
+  s.soundd_thread()
 
 
 if __name__ == "__main__":
