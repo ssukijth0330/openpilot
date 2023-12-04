@@ -69,7 +69,7 @@ PROCS.update({
   },
   "tizi": {
      "./boardd": 19.0,
-    "system.sensord.rawgps.rawgpsd": 1.0,
+    "system.qcomgpsd.qcomgpsd": 1.0,
   }
 }.get(HARDWARE.get_device_type(), {}))
 
@@ -408,7 +408,7 @@ class TestOnroad(unittest.TestCase):
   def test_startup(self):
     startup_alert = None
     for msg in self.lrs[0]:
-      # can't use carEvents because the first msg can be dropped while loggerd is starting up
+      # can't use onroadEvents because the first msg can be dropped while loggerd is starting up
       if msg.which() == "controlsState":
         startup_alert = msg.controlsState.alertText1
         break
@@ -417,8 +417,8 @@ class TestOnroad(unittest.TestCase):
 
   def test_engagable(self):
     no_entries = Counter()
-    for m in self.service_msgs['carEvents']:
-      for evt in m.carEvents:
+    for m in self.service_msgs['onroadEvents']:
+      for evt in m.onroadEvents:
         if evt.noEntry:
           no_entries[evt.name] += 1
 

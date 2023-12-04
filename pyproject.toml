@@ -2,6 +2,7 @@
 minversion = "6.0"
 addopts = "--ignore=openpilot/ --ignore=cereal/ --ignore=opendbc/ --ignore=panda/ --ignore=rednose_repo/ --ignore=tinygrad_repo/ -Werror --strict-config --strict-markers --durations=10 -n auto --dist=loadgroup"
 cpp_files = "test_*"
+cpp_harness = "selfdrive/test/cpp_harness.py"
 python_files = "test_*.py"
 #timeout = "30"  # you get this long by default
 markers = [
@@ -23,6 +24,7 @@ testpaths = [
   "system/proclogd",
   "system/tests",
   "system/ubloxd",
+  "system/webrtc",
   "tools/lib/tests",
   "tools/replay",
   "tools/cabana"
@@ -42,6 +44,8 @@ exclude = [
   "rednose_repo/",
   "tinygrad/",
   "tinygrad_repo/",
+  "teleoprtc/",
+  "teleoprtc_repo/",
   "third_party/",
 ]
 
@@ -185,6 +189,7 @@ exclude = [
   "opendbc",
   "rednose_repo",
   "tinygrad_repo",
+  "teleoprtc",
   "third_party",
 ]
 flake8-implicit-str-concat.allow-multiline=false

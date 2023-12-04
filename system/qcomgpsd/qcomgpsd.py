@@ -18,8 +18,8 @@ import cereal.messaging as messaging
 from openpilot.common.gpio import gpio_init, gpio_set
 from openpilot.system.hardware.tici.pins import GPIO
 from openpilot.system.swaglog import cloudlog
-from openpilot.system.sensord.rawgps.modemdiag import ModemDiag, DIAG_LOG_F, setup_logs, send_recv
-from openpilot.system.sensord.rawgps.structs import (dict_unpacker, position_report, relist,
+from openpilot.system.qcomgpsd.modemdiag import ModemDiag, DIAG_LOG_F, setup_logs, send_recv
+from openpilot.system.qcomgpsd.structs import (dict_unpacker, position_report, relist,
                                               gps_measurement_report, gps_measurement_report_sv,
                                               glonass_measurement_report, glonass_measurement_report_sv,
                                               oemdre_measurement_report, oemdre_measurement_report_sv, oemdre_svpoly_report,
@@ -101,7 +101,7 @@ def at_cmd(cmd: str) -> Optional[str]:
     try:
       return subprocess.check_output(f"mmcli -m any --timeout 30 --command='{cmd}'", shell=True, encoding='utf8')
     except subprocess.CalledProcessError:
-      cloudlog.exception("rawgps.mmcli_command_failed")
+      cloudlog.exception("qcomgps.mmcli_command_failed")
       time.sleep(1.0)
   raise Exception(f"failed to execute mmcli command {cmd=}")
 
@@ -163,7 +163,7 @@ def inject_assistance():
       return
     except subprocess.CalledProcessError as e:
       cloudlog.event(
-        "rawgps.assistance_loading_failed",
+        "qcomgps.assistance_loading_failed",
         error=True,
         cmd=e.cmd,
         output=e.output,
@@ -321,7 +321,7 @@ def main() -> NoReturn:
       print("%.4f: got log: %x len %d" % (time.time(), log_type, len(log_payload)))
 
     if log_type == LOG_GNSS_OEMDRE_MEASUREMENT_REPORT:
-      msg = messaging.new_message('qcomGnss')
+      msg = messaging.new_message('qcomGnss', valid=True)
 
       gnss = msg.qcomGnss
       gnss.logTs = log_time
@@ -370,7 +370,7 @@ def main() -> NoReturn:
       vNED = [report["q_FltVelEnuMps[1]"], report["q_FltVelEnuMps[0]"], -report["q_FltVelEnuMps[2]"]]
       vNEDsigma = [report["q_FltVelSigmaMps[1]"], report["q_FltVelSigmaMps[0]"], -report["q_FltVelSigmaMps[2]"]]
 
-      msg = messaging.new_message('gpsLocation')
+      msg = messaging.new_message('gpsLocation', valid=True)
       gps = msg.gpsLocation
       gps.latitude = report["t_DblFinalPosLatLon[0]"] * 180/math.pi
       gps.longitude = report["t_DblFinalPosLatLon[1]"] * 180/math.pi
@@ -379,7 +379,7 @@ def main() -> NoReturn:
       gps.bearingDeg = report["q_FltHeadingRad"] * 180/math.pi
 
       # TODO needs update if there is another leap second, after june 2024?
-      dt_timestamp = (datetime.datetime(1980, 1, 6, 0, 0, 0, 0, None) +
+      dt_timestamp = (datetime.datetime(1980, 1, 6, 0, 0, 0, 0, datetime.timezone.utc) +
                       datetime.timedelta(weeks=report['w_GpsWeekNumber']) +
                       datetime.timedelta(seconds=(1e-3*report['q_GpsFixTimeMs'] - 18)))
       gps.unixTimestampMillis = dt_timestamp.timestamp()*1e3
@@ -396,7 +396,7 @@ def main() -> NoReturn:
       pm.send('gpsLocation', msg)
 
     elif log_type == LOG_GNSS_OEMDRE_SVPOLY_REPORT:
-      msg = messaging.new_message('qcomGnss')
+      msg = messaging.new_message('qcomGnss', valid=True)
       dat = unpack_svpoly(log_payload)
       dat = relist(dat)
       gnss = msg.qcomGnss
@@ -433,7 +433,7 @@ def main() -> NoReturn:
       pm.send('qcomGnss', msg)
 
     elif log_type in [LOG_GNSS_GPS_MEASUREMENT_REPORT, LOG_GNSS_GLONASS_MEASUREMENT_REPORT]:
-      msg = messaging.new_message('qcomGnss')
+      msg = messaging.new_message('qcomGnss', valid=True)
 
       gnss = msg.qcomGnss
       gnss.logTs = log_time
