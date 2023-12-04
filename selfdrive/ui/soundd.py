@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import os
 import wave
 
 from typing import Dict, Optional, Tuple
@@ -39,6 +40,8 @@ class Soundd:
     self.current_alert = AudibleAlert.none
     self.current_volume = MAX_VOLUME
     self.current_sound_frame = 0
+
+    os.system("pactl set-sink-volume @DEFAULT_SINK@ 0.9") # set pulse to max volume, so volume can be controlled within soundd
 
   def load_sounds(self):
     self.loaded_sounds: Dict[int, np.ndarray] = {}
