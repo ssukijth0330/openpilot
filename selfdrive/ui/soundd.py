@@ -7,6 +7,9 @@ from typing import Dict, Optional, Tuple
 
 from cereal import car, messaging
 from openpilot.common.basedir import BASEDIR
+from openpilot.common.filter_simple import FirstOrderFilter
+
+from openpilot.system.micd import * as micd
 
 SAMPLE_RATE = 48000
 MAX_VOLUME = 1.0
@@ -40,6 +43,8 @@ class Soundd:
     self.current_alert = AudibleAlert.none
     self.current_volume = MAX_VOLUME
     self.current_sound_frame = 0
+
+    self.spl_filter_weighted = FirstOrderFilter(0, 2.5, micd.FILTER_DT, initialized=False)
 
     os.system("pactl set-sink-volume @DEFAULT_SINK@ 0.9") # set pulse to max volume, so volume can be controlled within soundd
 
@@ -107,7 +112,9 @@ class Soundd:
           self.new_alert(new_alert)
 
         if sm.updated['microphone']:
-          self.current_volume = self.calculate_volume(sm["microphone"].filteredSoundPressureWeightedDb)
+          if self.current_alert == AudibleAlert.none:
+            self.spl_filter_weighted.update(sm["microphone"].soundPressureWeightedDb)
+            self.current_volume = self.calculate_volume(float(self.spl_filter_weighted.x))
 
 
 def main():
