@@ -95,7 +95,7 @@ class Soundd:
 
     sm = messaging.SubMaster(['controlsState', 'microphone'])
 
-    with sd.OutputStream(device="pulse", channels=1, samplerate=SAMPLE_RATE, callback=self.stream_callback):
+    with sd.OutputStream(device="pulse", channels=1, samplerate=SAMPLE_RATE, callback=self.callback):
       while True:
         sm.update(timeout=1000)
 
